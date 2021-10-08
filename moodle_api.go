@@ -1762,6 +1762,47 @@ func (m *MoodleApi) GetQuizzesWithCourseId(courseIds []int) ([]*QuizInfo, error)
 	return results.Quizzes[:], nil
 }
 
+type QuizAttemptsResponse struct {
+	Attempts []QuizAttempt
+}
+
+type QuizAttempt struct {
+	Id                  int64      `json:"id"`
+	Quiz                int64      `json:"quiz"`
+	UserId              int64      `json:"userId"`
+	Attempt             int64      `json:"attempt"`
+	UniqueId            int64      `json:"uniqueId"`
+	Layout              int64      `json:"layout"`
+	CurrentPage         int64      `json:"currentPage"`
+	Preview             int64      `json:"preview"`
+	State               int64      `json:"state"`
+	TimeStart           *time.Time `json:"timestart"`
+	TimeFinish          *time.Time `json:"timefinish"`
+	TimeModified        *time.Time `json:"timemodified"`
+	TimeModifiedOffline *time.Time `json:"timemodifiedoffline"`
+	SumeGrades          int64      `json:"sumgrades"`
+}
+
+func (m *MoodleApi) GetQuizUserAttempts(quizId int, userId int) ([]QuizAttempt, error) {
+	url := fmt.Sprintf("%swebservice/rest/server.php?wstoken=%s&wsfunction=%s&moodlewsrestformat=json&moodlewssettingraw=true&quizid=%d&userid=%d", m.base, m.token, "mod_quiz_get_user_attempts", quizId, userId)
+	m.log.Debug("Fetch: %s", url)
+
+	body, _, _, err := m.fetch.GetUrl(url)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.HasPrefix(body, "{\"exception\":\"") {
+		return nil, errors.New(body)
+	}
+
+	var response QuizAttemptsResponse
+	if err := json.Unmarshal([]byte(body), &response); err != nil {
+		return nil, errors.New("Server returned unexpected response. " + err.Error())
+	}
+	return response.Attempts[:], nil
+}
+
 type ForumInfo struct {
 	Id               int64      `json:"id"`
 	CmId             int64      `json:"cmid"`
